@@ -768,7 +768,7 @@ onDeactivated(() => {
     taskTimer = null;
   }
   syncModalVisible.value = false;
-  rawDetailVisible.value = false;
+  // rawDetailVisible.value = false;
 });
 
 onActivated(() => {

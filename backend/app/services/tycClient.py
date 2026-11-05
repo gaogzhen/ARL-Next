@@ -270,6 +270,62 @@ class TycClient:
 
         return ""
 
+    def fetch_one_page(self, method, path, total_key, list_key, gid_field="gid", gid_val=None, extra_payload=None,
+                        delay=1.5):
+        """
+        通用分页抓取逻辑
+        total_key: 响应中表示总数的键名 (如 total, viewtotal, itemTotal, count)
+        list_key: 响应中包含数据列表的键名 (如 result, items, item, miniProgramIcpRecordList, resultList)
+        """
+        results = []
+        page_num = 1
+
+
+        params = None
+        json_data = None
+
+        payload = {
+            "pageSize": self.page_size,
+            "pageNum": page_num
+        }
+        # 商标接口的页码和分页键名不一样 (ps, pn)
+        if "trademarkList" in path:
+            payload = {
+                "ps": self.page_size,
+                "pn": page_num
+            }
+
+        payload[gid_field] = gid_val
+
+        if extra_payload:
+            payload.update(extra_payload)
+
+        if method.upper() == 'POST':
+            json_data = payload
+        else:
+            params = payload
+
+        try:
+            data = self._request(method, path, json_data=json_data, params=params)
+        except TycException as e:
+            # 遇到风控、过期、或者配置错误，直接向上抛出
+            raise e
+        except Exception as e:
+            logger.error(f"分页获取失败 (页码: {page_num}): {e}")
+            raise e
+
+        if not data:
+            return results
+
+        # 获取列表数据
+        return data.get(list_key, [])
+
+    def get_company_list(self, name):
+        extra = {"sortType": "0"}
+        return self.fetch_one_page("POST", "/cloud-tempest/web/searchCompanyV4", "companyTotal", "companyList", "word", name, extra_payload=extra)
+
+
+
     def search_suggest(self, keyword):
         """
         根据企业关键词定向检索匹配官方天眼查企业 (返回包含 GID 和官方公司全称的首选结果)

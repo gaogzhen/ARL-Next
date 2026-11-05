@@ -9,7 +9,7 @@ import re
 import random
 
 logger = logging.getLogger(__name__)
-MONGO_URI = "mongodb://admin:admin@mongodb:27017/?authSource=admin"
+MONGO_URI = "mongodb://admin:admin@localhost:27018/?authSource=admin"
 client = AsyncIOMotorClient(MONGO_URI)
 db = client['arl']
 

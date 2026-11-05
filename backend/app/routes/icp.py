@@ -1,3 +1,5 @@
+import re
+
 from flask_restx import Namespace, fields
 from app.utils import get_logger, auth, build_ret, curr_date, conn_db
 from app.modules import TaskStatus, ErrorMsg
@@ -336,6 +338,38 @@ class TycCheck(ARLResource):
                 "message": f"校验异常: {e}"
             })
 
+search_tyc_company_fields = {
+    'keyword': fields.String(required=True, description="公司名称"),
+}
+@ns.route('/tyc_search_company')
+class TycSearchCompany(ARLResource):
+    parser = get_arl_parser(search_tyc_company_fields, location='args')
+    @auth
+    @ns.expect(parser)
+    def get(self):
+        """
+        搜索公司列表
+        """
+        args = self.parser.parse_args()
+        # 直接查询
+        from app.services.tycClient import TycClient
+        try:
+            client = TycClient()
+            data = client.get_company_list(args['keyword'])
+            data_valid = []
+            for item in data:
+                # 过滤无效数据
+                if not item['id'] and not item['name']:
+                    continue
+                # 去除<em></em>
+                new_item = {
+                    "gid": item['id'],
+                    "name":  re.sub(r'</?em>', '', item['name'], flags=re.IGNORECASE)
+                }
+                data_valid.append(new_item)
+            return build_ret(ErrorMsg.Success, data_valid)
+        except Exception as e:
+            return build_ret(f"天眼查 API 请求失败, HTTP ", {})
 
 @ns.route('/tyc_task')
 class TycTask(ARLResource):

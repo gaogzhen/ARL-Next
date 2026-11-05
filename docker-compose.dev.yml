@@ -62,59 +62,59 @@ services:
 #      - arl-net
 
   # Puppeteer 无头浏览器渲染专属微服务 (常驻 HTTP 服务，解决 CPU 瓶颈)
-#  arl-puppeteer:
-#    <<: *default-logging
-#    image: crpi-laul1izptqrf0tkf.cn-beijing.personal.cr.aliyuncs.com/owl234-arl-prod/arl-puppeteer:latest
-#    container_name: arl-puppeteer-prod
-#    restart: always
-#    mem_reservation: 256m
-#    oom_score_adj: 300
-#    command: bash -c "export NODE_PATH=/usr/local/lib/node_modules && node /code/backend/app/tools/puppeteer_server.js"
-#    working_dir: /code
-#    environment:
-#      - TZ=Asia/Shanghai
-#    networks:
-#      - arl-net
+  arl-puppeteer:
+    <<: *default-logging
+    image: crpi-laul1izptqrf0tkf.cn-beijing.personal.cr.aliyuncs.com/owl234-arl-prod/arl-puppeteer:latest
+    container_name: arl-puppeteer-prod
+    restart: no
+    mem_reservation: 256m
+    oom_score_adj: 300
+    command: bash -c "export NODE_PATH=/usr/local/lib/node_modules && node /code/backend/app/tools/puppeteer_server.js"
+    working_dir: /code
+    environment:
+      - TZ=Asia/Shanghai
+    networks:
+      - arl-net
 
 
   # 后台扫描任务 Worker
-#  arl-worker:
-#    <<: *default-logging
-#    image: crpi-laul1izptqrf0tkf.cn-beijing.personal.cr.aliyuncs.com/owl234-arl-prod/arl-worker:latest
-#    container_name: arl-worker-prod
-#    restart: always
-#    mem_reservation: 512m
-#    oom_score_adj: 500
-#    stop_grace_period: 1m
-#    command: bash -c "/code/backend/start_worker_prod.sh"
-#    working_dir: /code
-#    volumes:
-#      - arl_screenshots:/code/backend/app/tmp_screenshot
-#      - arl_app_dicts:/code/backend/app/dicts
-#      - arl_poc_plugins:/code/backend/ARL-NPoC/xing/plugins
-#      - arl_poc_dicts:/code/backend/ARL-NPoC/xing/dicts
-#    environment:
-#      - TZ=Asia/Shanghai
-#      - DEBIAN_FRONTEND=noninteractive
-#      - NO_PROXY=localhost,127.0.0.1,osint-service,mongodb,rabbitmq
-#    ulimits:
-#      nofile:
-#        soft: 65535
-#        hard: 65535
-#    labels:
-#      - "autoheal=true"
-#    healthcheck:
-#      test: ["CMD-SHELL", "cd /code/backend && /code/backend/.venv-docker/bin/celery -A app.celerytask.celery inspect ping || exit 1"]
-#      interval: 60s
-#      timeout: 20s
-#      retries: 5
-#      start_period: 60s
-#    depends_on:
-#      - mongodb
-#      - rabbitmq
-#      - osint-service
-#    networks:
-#      - arl-net
+  arl-worker:
+    <<: *default-logging
+    image: crpi-laul1izptqrf0tkf.cn-beijing.personal.cr.aliyuncs.com/owl234-arl-prod/arl-worker:latest
+    container_name: arl-worker-prod
+    restart: no
+    mem_reservation: 512m
+    oom_score_adj: 500
+    stop_grace_period: 1m
+    command: bash -c "/code/backend/start_worker_prod.sh"
+    working_dir: /code
+    volumes:
+      - arl_screenshots:/code/backend/app/tmp_screenshot
+      - arl_app_dicts:/code/backend/app/dicts
+      - arl_poc_plugins:/code/backend/ARL-NPoC/xing/plugins
+      - arl_poc_dicts:/code/backend/ARL-NPoC/xing/dicts
+    environment:
+      - TZ=Asia/Shanghai
+      - DEBIAN_FRONTEND=noninteractive
+      - NO_PROXY=localhost,127.0.0.1,osint-service,mongodb,rabbitmq
+    ulimits:
+      nofile:
+        soft: 65535
+        hard: 65535
+    labels:
+      - "autoheal=true"
+    healthcheck:
+      test: ["CMD-SHELL", "cd /code/backend && /code/backend/.venv-docker/bin/celery -A app.celerytask.celery inspect ping || exit 1"]
+      interval: 60s
+      timeout: 20s
+      retries: 5
+      start_period: 60s
+    depends_on:
+      - mongodb
+      - rabbitmq
+      - osint-service
+    networks:
+      - arl-net
 
   # MongoDB 数据库 (去除了 ports "27018:27017" 的外网暴露)
   mongodb:
@@ -147,6 +147,7 @@ services:
     mem_reservation: 128m
     oom_score_adj: -500
     ports:
+      - "5673:5672"
       - "15673:15672"   # 宿主机 15673 -> 容器 15672
     environment:
       - RABBITMQ_DEFAULT_USER=admin
@@ -158,14 +159,16 @@ services:
     networks:
       - arl-net
   # 备案查询微服务 (去除了 ports 暴露)
-#  osint-service:
-#    <<: *default-logging
-#    image: crpi-laul1izptqrf0tkf.cn-beijing.personal.cr.aliyuncs.com/owl234-arl-prod/osint-service:latest
-#    container_name: arl-osint-service-prod
-#    restart: always
-#    mem_reservation: 64m
-#    networks:
-#      - arl-net
+  osint-service:
+    <<: *default-logging
+    image: crpi-laul1izptqrf0tkf.cn-beijing.personal.cr.aliyuncs.com/owl234-arl-prod/osint-service:latest
+    container_name: arl-osint-service-prod
+    restart: no
+    mem_reservation: 64m
+    networks:
+      - arl-net
+    ports:
+      - "16181:16181"
 
   # 容器级自愈探针护盾 (自动检测死锁并急救)
   autoheal:
